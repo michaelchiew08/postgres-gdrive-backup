@@ -1,7 +1,5 @@
 
-FROM alpine:3.18 AS build
-
-RUN apk add --no-cache nodejs npm
+FROM node:22-alpine AS build
 
 ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 ENV NPM_CONFIG_FUND=false
@@ -13,25 +11,19 @@ COPY src ./src
 
 RUN npm install && \
     npm run build && \
-    npm prune --production
+    npm prune --omit=dev
 
-FROM alpine:3.18
+FROM node:22-alpine
 
 WORKDIR /root
+
+# PostgreSQL client tools
+ARG PG_VERSION=16
+
+RUN apk add --no-cache \
+    postgresql${PG_VERSION}-client
 
 COPY --from=build /root/node_modules ./node_modules
 COPY --from=build /root/dist ./dist
 
-# PostgreSQL client version
-ARG PG_VERSION=16
-
-RUN apk add --no-cache \
-    --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
-    --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community \
-    postgresql${PG_VERSION}-client \
-    nodejs \
-    npm
-
-CMD pg_isready --dbname="$DATABASE_URL" && \
-    pg_dump --version && \
-    node dist/index.js
+CMD ["sh", "-c", "pg_isready --dbname=\"$DATABASE_URL\" && pg_dump --version && exec node dist/index.js"]
