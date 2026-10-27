@@ -18,7 +18,7 @@ FROM node:22-alpine
 WORKDIR /root
 
 # PostgreSQL client tools
-ARG PG_VERSION=16
+ARG PG_VERSION=18
 
 RUN apk add --no-cache \
     postgresql${PG_VERSION}-client
